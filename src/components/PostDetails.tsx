@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import PropTypes from 'prop-types';
 import { Post } from '../types/Post';
 import { Comment } from '../types/Comment';
 import { client } from '../utils/fetchClient';
@@ -14,12 +15,14 @@ export const PostDetails: React.FC<Props> = ({ post }) => {
   const [isCommentsLoading, setIsCommentsLoading] = useState(false);
   const [isCommentsError, setIsCommentsError] = useState(false);
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [deleteError, setDeleteError] = useState<Comment | null>(null);
 
   useEffect(() => {
     setIsCommentsLoading(true);
     setIsCommentsError(false);
     setComments([]);
     setIsFormVisible(false);
+    setDeleteError(null);
 
     client
       .get<Comment[]>(`/comments?postId=${post.id}`)
@@ -35,12 +38,35 @@ export const PostDetails: React.FC<Props> = ({ post }) => {
   const hasNoComments =
     !isCommentsLoading && !isCommentsError && comments.length === 0;
 
-  const deleteComment = (commentId: number) => {
+  const deleteComment = (comment: Comment) => {
+    setDeleteError(null);
+
     setComments(currentComments =>
-      currentComments.filter(comment => comment.id !== commentId),
+      currentComments.filter(
+        currentComment => currentComment.id !== comment.id,
+      ),
     );
 
-    client.delete(`/comments/${commentId}`);
+    client.delete(`/comments/${comment.id}`).catch(() => {
+      setDeleteError(comment);
+    });
+  };
+
+  const retryDelete = () => {
+    if (!deleteError) {
+      return;
+    }
+
+    const comment = deleteError;
+
+    client
+      .delete(`/comments/${comment.id}`)
+      .then(() => {
+        setDeleteError(null);
+      })
+      .catch(() => {
+        setDeleteError(comment);
+      });
   };
 
   const addComment = (comment: Comment) => {
@@ -64,6 +90,19 @@ export const PostDetails: React.FC<Props> = ({ post }) => {
           {isCommentsError && (
             <div className="notification is-danger" data-cy="CommentsError">
               Something went wrong
+            </div>
+          )}
+
+          {deleteError && (
+            <div className="notification is-danger">
+              Unable to delete comment.
+              <button
+                type="button"
+                className="button is-small is-danger is-light ml-2"
+                onClick={retryDelete}
+              >
+                Retry
+              </button>
             </div>
           )}
 
@@ -91,7 +130,7 @@ export const PostDetails: React.FC<Props> = ({ post }) => {
                   type="button"
                   className="delete is-small"
                   aria-label="delete"
-                  onClick={() => deleteComment(comment.id)}
+                  onClick={() => deleteComment(comment)}
                 >
                   delete button
                 </button>
@@ -121,4 +160,13 @@ export const PostDetails: React.FC<Props> = ({ post }) => {
       </div>
     </div>
   );
+};
+
+PostDetails.propTypes = {
+  post: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    userId: PropTypes.number.isRequired,
+    title: PropTypes.string.isRequired,
+    body: PropTypes.string.isRequired,
+  }).isRequired,
 };

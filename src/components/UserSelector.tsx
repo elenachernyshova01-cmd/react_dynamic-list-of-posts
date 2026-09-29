@@ -1,5 +1,6 @@
 import classNames from 'classnames';
 import React, { useEffect, useRef, useState } from 'react';
+import PropTypes from 'prop-types';
 import { User } from '../types/User';
 
 type Props = {
@@ -78,4 +79,16 @@ export const UserSelector: React.FC<Props> = ({ users, onSelect }) => {
       </div>
     </div>
   );
+};
+
+UserSelector.propTypes = {
+  users: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.number.isRequired,
+      name: PropTypes.string.isRequired,
+      email: PropTypes.string.isRequired,
+      phone: PropTypes.string.isRequired,
+    }).isRequired,
+  ).isRequired,
+  onSelect: PropTypes.func.isRequired,
 };

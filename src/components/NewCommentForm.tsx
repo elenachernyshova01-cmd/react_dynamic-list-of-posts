@@ -1,5 +1,6 @@
 import classNames from 'classnames';
 import React, { FormEvent, useState } from 'react';
+import PropTypes from 'prop-types';
 import { Comment, CommentData } from '../types/Comment';
 import { client } from '../utils/fetchClient';
 
@@ -18,6 +19,7 @@ export const NewCommentForm: React.FC<Props> = ({ postId, onAdd }) => {
   const [bodyError, setBodyError] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitError, setIsSubmitError] = useState(false);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -29,6 +31,7 @@ export const NewCommentForm: React.FC<Props> = ({ postId, onAdd }) => {
     setNameError(isNameEmpty);
     setEmailError(isEmailEmpty);
     setBodyError(isBodyEmpty);
+    setIsSubmitError(false);
 
     if (isNameEmpty || isEmailEmpty || isBodyEmpty) {
       return;
@@ -43,10 +46,13 @@ export const NewCommentForm: React.FC<Props> = ({ postId, onAdd }) => {
     setIsSubmitting(true);
 
     client
-      .post<Comment>(`/comments`, { ...newComment, postId })
+      .post<Comment>('/comments', { ...newComment, postId })
       .then(comment => {
         onAdd(comment);
         setBody('');
+      })
+      .catch(() => {
+        setIsSubmitError(true);
       })
       .finally(() => {
         setIsSubmitting(false);
@@ -61,6 +67,7 @@ export const NewCommentForm: React.FC<Props> = ({ postId, onAdd }) => {
     setNameError(false);
     setEmailError(false);
     setBodyError(false);
+    setIsSubmitError(false);
   };
 
   return (
@@ -83,6 +90,7 @@ export const NewCommentForm: React.FC<Props> = ({ postId, onAdd }) => {
             onChange={event => {
               setName(event.target.value);
               setNameError(false);
+              setIsSubmitError(false);
             }}
           />
 
@@ -125,6 +133,7 @@ export const NewCommentForm: React.FC<Props> = ({ postId, onAdd }) => {
             onChange={event => {
               setEmail(event.target.value);
               setEmailError(false);
+              setIsSubmitError(false);
             }}
           />
 
@@ -166,6 +175,7 @@ export const NewCommentForm: React.FC<Props> = ({ postId, onAdd }) => {
             onChange={event => {
               setBody(event.target.value);
               setBodyError(false);
+              setIsSubmitError(false);
             }}
           />
         </div>
@@ -176,6 +186,12 @@ export const NewCommentForm: React.FC<Props> = ({ postId, onAdd }) => {
           </p>
         )}
       </div>
+
+      {isSubmitError && (
+        <div className="notification is-danger">
+          Unable to add a comment. Please try again.
+        </div>
+      )}
 
       <div className="field is-grouped">
         <div className="control">
@@ -201,4 +217,9 @@ export const NewCommentForm: React.FC<Props> = ({ postId, onAdd }) => {
       </div>
     </form>
   );
+};
+
+NewCommentForm.propTypes = {
+  postId: PropTypes.number.isRequired,
+  onAdd: PropTypes.func.isRequired,
 };
